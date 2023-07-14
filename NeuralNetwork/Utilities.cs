@@ -12,8 +12,19 @@ namespace NeuralNetwork
     {
         private static Random random = new Random();
 
+        internal static void ThrowIfMaxSmallerMin(double min, double max)
+        {
+            if (min >= max)
+            {
+                throw new ArgumentException("Parameter max is smaller than min.");
+            }
+        }
+
         internal static double Random(double min, double max)
         {
+            ThrowIfMaxSmallerMin(min, max);
+            ArgumentNullException.ThrowIfNull(random);
+
             return random.NextDouble() * (max - min) + min;
         }
 

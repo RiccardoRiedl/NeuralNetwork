@@ -1,82 +1,89 @@
 ﻿using NeuralNetwork;
+using NeuralNetworkConsoleApp;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
+
 internal class Program
 {
-    public sealed class Sessions
+    private static void StartMessage()
     {
-        private static readonly Lazy<Sessions> lazy = new Lazy<Sessions>(() => new Sessions());
+        Console.WriteLine("Neural Network Console App");
+        PrintHelp();
+    }
 
-        public static Sessions Instance { get { return lazy.Value; } }
-
-        private Sessions()
+    private static void ProcessCommand(ConsoleKey key)
+    {
+        switch (key)
         {
-        }
+            case ConsoleKey.F1:
+                PrintHelp();
+                break;
 
-        public LayeredNetwork? CurrentNetwork { get; set; }
-        public List<TrainingData>? CurrentTrainingData { get; set; }
+            case ConsoleKey.C:
+                CreateNetwork();
+                break;
+
+            case ConsoleKey.P:
+                PrintNetwork();
+                break;
+
+            case ConsoleKey.F:
+                FeedNetwork();
+                break;
+
+            case ConsoleKey.T:
+                TrainNetwork();
+                break;
+
+            case ConsoleKey.L:
+                LoadData();
+                break;
+
+            case ConsoleKey.S:
+                SaveData();
+                break;
+
+            case ConsoleKey.A:
+                AddData();
+                break;
+
+            case ConsoleKey.D:
+                PrintData();
+                break;
+        }
+    }
+
+    private static void PrintError(Exception ex)
+    {
+        Console.WriteLine(" ");
+        Console.WriteLine("Error: " + ex.Message);
+        Console.WriteLine();
     }
 
     private static void Main(string[] args)
     {
-        Console.WriteLine("Neural Network Console App");
-
-        PrintHelp();
+        StartMessage();
 
         var key = SelectCommand();
         while (key != ConsoleKey.Escape)
         {
             try
             {
-                switch (key)
-                {
-                    case ConsoleKey.F1:
-                        PrintHelp();
-                        break;
-
-                    case ConsoleKey.C:
-                        CreateNetwork();
-                        break;
-
-                    case ConsoleKey.P:
-                        PrintNetwork();
-                        break;
-
-                    case ConsoleKey.F:
-                        FeedNetwork();
-                        break;
-
-                    case ConsoleKey.T:
-                        TrainNetwork();
-                        break;
-
-                    case ConsoleKey.S:
-                        SaveData();
-                        break;
-
-                    case ConsoleKey.L:
-                        LoadData();
-                        break;
-
-                    case ConsoleKey.D:
-                        PrintData();
-                        break;
-                }
+                ProcessCommand(key);
             }
             catch (Exception ex)
             {
-                Console.WriteLine();
-                Console.WriteLine("Error: " + ex.Message);
+                PrintError(ex);
             }
 
             key = SelectCommand();
         }
 
-        Console.Write("Press any key to close this window");
+        Console.Write("PPress any key to close this window");
         Console.ReadKey();
     }
 
@@ -100,16 +107,34 @@ internal class Program
     {
         Console.WriteLine();
         Console.WriteLine("Press [F1] for help");
+
         Console.WriteLine("Press [c] to create a new layered network");
-        Console.WriteLine("Press [p] to print a previously created network");
+        Console.WriteLine("Press [p] to print the current network");
         Console.WriteLine("Press [f] to feed values into the network");
         Console.WriteLine("Press [t] to train the network through back propagation");
         Console.WriteLine("Press [l] to load training data from a json file");
         Console.WriteLine("Press [s] to save training data to a json file");
         Console.WriteLine("Press [a] to add training data");
         Console.WriteLine("Press [d] to print the current training data");
+
         Console.WriteLine("Press [Esc] to exit");
     }
+
+
+    //static void Demo()
+    //{
+    //    int[] layers = new int[] { 4, 4, 4, 2 };
+    //    LayeredNetwork network = new LayeredNetwork(layers);
+    //    network.SetFunc(1, FunctionType.ReLU);
+
+    //    TrainingData trainingData = new TrainingData()
+    //    {
+    //        Input = new double[] { 0.1, 0.2, 0.1, 0.5 },
+    //        Target = new double[] { 0.9, 0.1 }
+    //    };
+
+    //    network.BackPropagation(trainingData, 0.05);
+    //}
 
     /// <summary>
     /// Command to create a new network
@@ -118,7 +143,7 @@ internal class Program
     {
         string prompt = "Enter array of layers with count of neurons (e.g. [10, 4, 4, 2])";
         var layers = ReadIntArray(prompt);
-        Sessions.Instance.CurrentNetwork = new LayeredNetwork(layers, true);
+        Session.Instance.CurrentNetwork = new LayeredNetwork(layers, true);
     }
 
     /// <summary>
@@ -126,8 +151,8 @@ internal class Program
     /// </summary>
     static void PrintNetwork()
     {
-        ArgumentNullException.ThrowIfNull(Sessions.Instance.CurrentNetwork);
-        Console.WriteLine(Sessions.Instance.CurrentNetwork.ToString());
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
+        Console.WriteLine(Session.Instance.CurrentNetwork.ToString());
     }
 
     /// <summary>
@@ -135,19 +160,13 @@ internal class Program
     /// </summary>
     static void FeedNetwork()
     {
-        ArgumentNullException.ThrowIfNull(Sessions.Instance.CurrentNetwork);
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
 
         string prompt = "Enter input values as array of doubles ([0.1, 0.25, ...])";
-        var input = ReadDoubleArray(prompt);
+        var input = ReadDoubleArray(prompt, Session.Instance.CurrentNetwork.InputCount);
 
-        if (input.Length != Sessions.Instance.CurrentNetwork.InputCount)
-        {
-            Console.WriteLine("Number of input values does not match networks input nodes. Try again...");
-            FeedNetwork();
-        }
-
-        var result = Sessions.Instance.CurrentNetwork.FeedForward(input, false);
-        Console.WriteLine("Result: " + ArrayToString(result));
+        var result = Session.Instance.CurrentNetwork.FeedForward(input, false);
+        Console.WriteLine($"{Environment.NewLine}Result: {ArrayToString(result)}");
     }
 
     /// <summary>
@@ -155,17 +174,17 @@ internal class Program
     /// </summary>
     static void TrainNetwork()
     {
-        ArgumentNullException.ThrowIfNull(Sessions.Instance.CurrentNetwork);
-        ArgumentNullException.ThrowIfNull(Sessions.Instance.CurrentTrainingData);
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
 
         var lr = ReadDouble("Enter learning rate");
 
         int i = 0;
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        for (;i < Sessions.Instance.CurrentTrainingData.Count;i++)
+        for (;i < Session.Instance.CurrentTrainingData.Count;i++)
         {
-            Sessions.Instance.CurrentNetwork.BackPropagation(Sessions.Instance.CurrentTrainingData[i], 0.01);
+            Session.Instance.CurrentNetwork.BackPropagation(Session.Instance.CurrentTrainingData[i], 0.01);
         }
         stopwatch.Stop();
 
@@ -174,26 +193,24 @@ internal class Program
 
     static void PrintData()
     {
-        ArgumentNullException.ThrowIfNull(Sessions.Instance.CurrentNetwork);
-        ArgumentNullException.ThrowIfNull(Sessions.Instance.CurrentTrainingData);
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
 
-        foreach(var set in Sessions.Instance.CurrentTrainingData)
+        foreach(var set in Session.Instance.CurrentTrainingData)
         {
             Console.WriteLine($"Input: {ArrayToString(set.Input)} -> Target: {ArrayToString(set.Target)}");
         }
     }
 
-    static void AddTrainingData()
+    static void AddData()
     {
-        //ArgumentNullException.ThrowIfNull(network);
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
+
+        var input = ReadDoubleArray("Input", Session.Instance.CurrentNetwork.InputCount);
+        var output = ReadDoubleArray("Output", Session.Instance.CurrentNetwork.OutputCount);
+        
+        Session.Instance.AddTrainingData(new TrainingData(input, output));
     }
-
-
-
-
-
-
-
 
     static string GetFilePath(bool throwIfDoesntExist, bool createIfNotExist)
     {
@@ -235,7 +252,7 @@ internal class Program
         //trainingData.Add(new TrainingDataSet(new double[] { 3, 4.0 }, new double[] { 0.5, 0.6 }));
 
 
-        TrainingDataPersistence.SaveDataSet(Sessions.Instance.CurrentTrainingData, path);
+        TrainingDataPersistence.SaveDataSet(Session.Instance.CurrentTrainingData, path);
     }
 
     static void LoadData()
@@ -243,12 +260,10 @@ internal class Program
         var path = GetFilePath(true, false);
 
         var data = TrainingDataPersistence.LoadFromFile(path);
-        Sessions.Instance.CurrentTrainingData = data;
+        Session.Instance.CurrentTrainingData = data;
 
         //trainingData = new List<TrainingDataSet>(Utilities.LoadFromFile(path));
     }
-
-
 
     static string ArrayToString(double[] array)
     {
@@ -297,12 +312,19 @@ internal class Program
         return result;
     }
 
-    static double[] ReadDoubleArray(string prompt)
+    static double[] ReadDoubleArray(string prompt, int count)
     {
         Console.Write(prompt + ": ");
 
         string value = ReadString();
         string[] elements = value.Trim('[', ']').Split(',');
+
+        if (elements.Length != count)
+        {
+            Console.WriteLine($"{Environment.NewLine}Invalid input. Expected {count} elements but read was {elements.Length}");
+            return ReadDoubleArray(prompt, count);
+        }
+
         double[] array = new double[elements.Length];
 
         for (int i = 0; i < elements.Length; i++)
@@ -310,6 +332,7 @@ internal class Program
             array[i] = double.Parse(elements[i]);
         }
 
+        Console.WriteLine();
         return array;
     }
 
@@ -333,7 +356,7 @@ internal class Program
                 if (input.Length > 0)
                 {
                     input = input.Substring(0, input.Length - 1);
-                    Console.Write("\b \b"); // Erase the character from the console
+                    Console.Write(" \b"); // Erase the character from the console
                 }
             }
             else if (keyInfo.Key == ConsoleKey.Enter)

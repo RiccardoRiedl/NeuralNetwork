@@ -27,7 +27,7 @@ public class LayeredNetwork
     /// <param name="layerSizes">Each element of the array represents a layer
     /// defined by the number of neurons</param>
     /// <param name="randomize">Optionally randomize weights and biases</param>
-    public LayeredNetwork(int[] layerSizes, bool randomize)
+    public LayeredNetwork(int[] layerSizes, bool randomize = true)
     {
         this.layerSizes = layerSizes;
         this.layerCount = layerSizes.Length;
@@ -100,15 +100,7 @@ public class LayeredNetwork
 
     public double[] FeedForward(double[] input, bool gradients)
     {
-
-        //if (NormalizeInput)
-        //{
-        //    layerOutputs[0] = Utilities.NormalizeArray(input);
-        //}
-        //else
-        //{
-            Array.Copy(input, layerOutputs[0], input.Length);
-        //}
+        Array.Copy(input, layerOutputs[0], input.Length);
 
         for (int iSourceLayer = 0; iSourceLayer < layerCount - 1; iSourceLayer++)
         {
