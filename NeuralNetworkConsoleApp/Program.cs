@@ -1,26 +1,78 @@
 ﻿using NeuralNetwork;
 using NeuralNetworkConsoleApp;
-using System.Collections.Specialized;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 
 internal class Program
 {
-    private static void StartMessage()
+    /// <summary>
+    /// The main function is looping getting commands until
+    /// the [Esc] key is pressed to exit the app
+    /// </summary>
+    /// <param name="args"></param>
+    private static void Main(string[] args)
     {
-        Console.WriteLine("Neural Network Console App");
-        PrintHelp();
+        StartMessage();
+
+        var key = SelectCommand();
+        while (key != ConsoleKey.Escape)
+        {
+            try
+            {
+                ProcessCommand(key);
+            }
+            catch (Exception ex)
+            {
+                PrintError(ex);
+            }
+
+            key = SelectCommand();
+        }
+
+        Console.Write("PPress any key to close this window");
+        Console.ReadKey();
     }
 
+    /// <summary>
+    /// Print a title followed by the help content to start
+    /// </summary>
+    private static void StartMessage()
+    {
+        Console.WriteLine("-============================-");
+        Console.WriteLine("| Neural Network Console App |");
+        Console.WriteLine("| © 2023 Riccardo Riedl      |");
+        Console.WriteLine("-============================-");
+        Console.WriteLine();
+        Console.WriteLine("Press [F1] for help");
+        Console.WriteLine();
+    }
+
+    /// <summary>
+    /// Clear the screen and print welcome message
+    /// </summary>
+    private static void ClearScreen()
+    {
+        Console.Clear();
+        StartMessage();
+    }
+
+    /// <summary>
+    /// Just mapping the input key to the methods to run the command
+    /// Needs to be in sync with help
+    /// </summary>
+    /// <param name="key"></param>
     private static void ProcessCommand(ConsoleKey key)
     {
+        ArgumentNullException.ThrowIfNull(key);
+
         switch (key)
         {
             case ConsoleKey.F1:
                 PrintHelp();
+                break;
+
+            case ConsoleKey.Delete:
+                ClearScreen();
                 break;
 
             case ConsoleKey.C:
@@ -57,44 +109,13 @@ internal class Program
         }
     }
 
-    private static void PrintError(Exception ex)
-    {
-        Console.WriteLine(" ");
-        Console.WriteLine("Error: " + ex.Message);
-        Console.WriteLine();
-    }
-
-    private static void Main(string[] args)
-    {
-        StartMessage();
-
-        var key = SelectCommand();
-        while (key != ConsoleKey.Escape)
-        {
-            try
-            {
-                ProcessCommand(key);
-            }
-            catch (Exception ex)
-            {
-                PrintError(ex);
-            }
-
-            key = SelectCommand();
-        }
-
-        Console.Write("PPress any key to close this window");
-        Console.ReadKey();
-    }
-
-
     /// <summary>
     /// Helper to query for the next command
     /// </summary>
     /// <returns></returns>
     static ConsoleKey SelectCommand()
     {
-        Console.Write("\nSelect command: ");
+        Console.Write("Select command: ");
         var key = Console.ReadKey().Key;
         Console.WriteLine();
         return key;
@@ -106,35 +127,20 @@ internal class Program
     static void PrintHelp()
     {
         Console.WriteLine();
-        Console.WriteLine("Press [F1] for help");
+        Console.WriteLine("Press [F1]  for help");
+        Console.WriteLine("Press [Del] to clear screen");
 
-        Console.WriteLine("Press [c] to create a new layered network");
-        Console.WriteLine("Press [p] to print the current network");
-        Console.WriteLine("Press [f] to feed values into the network");
-        Console.WriteLine("Press [t] to train the network through back propagation");
-        Console.WriteLine("Press [l] to load training data from a json file");
-        Console.WriteLine("Press [s] to save training data to a json file");
-        Console.WriteLine("Press [a] to add training data");
-        Console.WriteLine("Press [d] to print the current training data");
+        Console.WriteLine("Press [c]   to create a new layered network");
+        Console.WriteLine("Press [p]   to print the current network");
+        Console.WriteLine("Press [f]   to feed values into the network");
+        Console.WriteLine("Press [t]   to train the network through back propagation");
+        Console.WriteLine("Press [l]   to load training data from a json file");
+        Console.WriteLine("Press [s]   to save training data to a json file");
+        Console.WriteLine("Press [a]   to add training data");
+        Console.WriteLine("Press [d]   to print the current training data");
 
         Console.WriteLine("Press [Esc] to exit");
     }
-
-
-    //static void Demo()
-    //{
-    //    int[] layers = new int[] { 4, 4, 4, 2 };
-    //    LayeredNetwork network = new LayeredNetwork(layers);
-    //    network.SetFunc(1, FunctionType.ReLU);
-
-    //    TrainingData trainingData = new TrainingData()
-    //    {
-    //        Input = new double[] { 0.1, 0.2, 0.1, 0.5 },
-    //        Target = new double[] { 0.9, 0.1 }
-    //    };
-
-    //    network.BackPropagation(trainingData, 0.05);
-    //}
 
     /// <summary>
     /// Command to create a new network
@@ -143,6 +149,7 @@ internal class Program
     {
         string prompt = "Enter array of layers with count of neurons (e.g. [10, 4, 4, 2])";
         var layers = ReadIntArray(prompt);
+
         Session.Instance.CurrentNetwork = new LayeredNetwork(layers, true);
     }
 
@@ -162,7 +169,7 @@ internal class Program
     {
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
 
-        string prompt = "Enter input values as array of doubles ([0.1, 0.25, ...])";
+        string prompt = $"Enter {Session.Instance.CurrentNetwork.InputCount} input values as array of doubles ([0.1, 0.25, ...])";
         var input = ReadDoubleArray(prompt, Session.Instance.CurrentNetwork.InputCount);
 
         var result = Session.Instance.CurrentNetwork.FeedForward(input, false);
@@ -191,6 +198,9 @@ internal class Program
         Console.WriteLine($"Training finished {i} runs after {stopwatch.ElapsedMilliseconds} ms.");
     }
 
+    /// <summary>
+    /// Prints the current training data
+    /// </summary>
     static void PrintData()
     {
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
@@ -202,36 +212,53 @@ internal class Program
         }
     }
 
+    /// <summary>
+    /// Add a new set of training data
+    /// </summary>
     static void AddData()
     {
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
 
-        var input = ReadDoubleArray("Input", Session.Instance.CurrentNetwork.InputCount);
-        var output = ReadDoubleArray("Output", Session.Instance.CurrentNetwork.OutputCount);
+        var input = ReadDoubleArray($"Enter {Session.Instance.CurrentNetwork.InputCount} input values", Session.Instance.CurrentNetwork.InputCount);
+        var output = ReadDoubleArray($"Enter {Session.Instance.CurrentNetwork.TargetCount} target values", Session.Instance.CurrentNetwork.TargetCount);
         
         Session.Instance.AddTrainingData(new TrainingData(input, output));
     }
 
+    /// <summary>
+    /// Gets the path for the json file to store training data
+    /// </summary>
+    /// <param name="throwIfDoesntExist"></param>
+    /// <param name="createIfNotExist"></param>
+    /// <returns></returns>
+    /// <exception cref="FileNotFoundException"></exception>
     static string GetFilePath(bool throwIfDoesntExist, bool createIfNotExist)
     {
-#if DEBUG
-        return @"C:\Users\adriri1\Desktop\TestFiles\New\test.json";
-#endif
-        Console.WriteLine();
-        Console.Write("Enter file: ");
+        var cur = Directory.GetCurrentDirectory();
 
-        var path = Console.ReadLine();
+        Console.WriteLine("Current directory where files are stored:");
+        Console.WriteLine(cur);
+        Console.Write("Enter file name: ");
+
+        var file = Console.ReadLine();
+
+        ArgumentNullException.ThrowIfNull(file);
+
+        var path = Path.Combine(cur, file);
+        path = Path.ChangeExtension(path, "json");
 
         if (!File.Exists(path))
         {
             if (throwIfDoesntExist)
             {
-                throw new FileNotFoundException(path);
+                throw new FileNotFoundException($"File not found: {path}");
             }
 
             if (createIfNotExist)
             {
                 var dir = Path.GetDirectoryName(path);
+                ArgumentNullException.ThrowIfNull(dir);
+
                 if (!Directory.Exists(dir))
                 {
                     Directory.CreateDirectory(dir);
@@ -243,28 +270,31 @@ internal class Program
         return path;
     }
 
+    /// <summary>
+    /// Save current training data
+    /// </summary>
     static void SaveData()
-    {
+    {        
+        ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
         var path = GetFilePath(false, true);
-
-        //trainingData.Clear();
-        //trainingData.Add(new TrainingDataSet(new double[] { 1.0, 2 }, new double[] { 0.3, 0.4 }));
-        //trainingData.Add(new TrainingDataSet(new double[] { 3, 4.0 }, new double[] { 0.5, 0.6 }));
-
-
         TrainingDataPersistence.SaveDataSet(Session.Instance.CurrentTrainingData, path);
     }
 
+    /// <summary>
+    /// Load training data from file
+    /// </summary>
     static void LoadData()
     {
         var path = GetFilePath(true, false);
-
         var data = TrainingDataPersistence.LoadFromFile(path);
         Session.Instance.CurrentTrainingData = data;
-
-        //trainingData = new List<TrainingDataSet>(Utilities.LoadFromFile(path));
     }
 
+    /// <summary>
+    /// Converts array of doubles into a readable string like [1.2, 3.0, ... ]
+    /// </summary>
+    /// <param name="array"></param>
+    /// <returns></returns>
     static string ArrayToString(double[] array)
     {
         StringBuilder sb = new StringBuilder("[");
@@ -281,22 +311,12 @@ internal class Program
     }
 
 
-    static int[] ReadIntArray(string prompt)
-    {
-        Console.Write(prompt + ": ");
 
-        string value = ReadString();
-        string[] elements = value.Trim('[', ']').Split(',');
-        int[] intArray = new int[elements.Length];
-
-        for (int i = 0; i < elements.Length; i++)
-        {
-            intArray[i] = int.Parse(elements[i]);
-        }
-
-        return intArray;
-    }
-
+    /// <summary>
+    /// Read one double value
+    /// </summary>
+    /// <param name="prompt">Message to print</param>
+    /// <returns>double value if successful</returns>
     static double ReadDouble(string prompt)
     {
         Console.Write(prompt + ": ");
@@ -312,19 +332,27 @@ internal class Program
         return result;
     }
 
-    static double[] ReadDoubleArray(string prompt, int count)
+    /// <summary>
+    /// Prompt user to enter an array of double values as "[x.y, z, ...]"
+    /// </summary>
+    /// <param name="prompt">Message to print</param>
+    /// <param name="expectedLenght">Expected number of elements</param>
+    /// <returns>double array if successful</returns>
+    static double[] ReadDoubleArray(string prompt, int expectedLenght)
     {
-        Console.Write(prompt + ": ");
+        Console.Write($"{prompt}: ");
 
         string value = ReadString();
         string[] elements = value.Trim('[', ']').Split(',');
 
-        if (elements.Length != count)
+        // Check if expected number of elements was entered and if not restart the prompt
+        if (elements.Length != expectedLenght)
         {
-            Console.WriteLine($"{Environment.NewLine}Invalid input. Expected {count} elements but read was {elements.Length}");
-            return ReadDoubleArray(prompt, count);
+            Console.WriteLine($"{Environment.NewLine}Invalid input. Expected {expectedLenght} elements but received {elements.Length}");
+            return ReadDoubleArray(prompt, expectedLenght);
         }
 
+        // Now create the array from the string elements
         double[] array = new double[elements.Length];
 
         for (int i = 0; i < elements.Length; i++)
@@ -336,6 +364,28 @@ internal class Program
         return array;
     }
 
+    static int[] ReadIntArray(string prompt)
+    {
+        Console.Write($"{prompt}: ");
+
+        string value = ReadString();
+        string[] elements = value.Trim('[', ']').Split(',');
+        int[] intArray = new int[elements.Length];
+
+        for (int i = 0; i < elements.Length; i++)
+        {
+            intArray[i] = int.Parse(elements[i]);
+        }
+
+        Console.WriteLine();
+        return intArray;
+    }
+
+    /// <summary>
+    /// Custom ReadString that can be escaped with [Esc] to cancel an input command
+    /// </summary>
+    /// <returns>The input string</returns>
+    /// <exception cref="EscapeException">When prompt is escaped</exception>
     static string ReadString()
     {
         ConsoleKeyInfo keyInfo;
@@ -345,30 +395,41 @@ internal class Program
         {
             keyInfo = Console.ReadKey();
 
-            if (keyInfo.Key == ConsoleKey.Escape)
+            switch (keyInfo.Key)
             {
-                throw new Exception("Escape key pressed");
-            }
+                case ConsoleKey.Escape:
+                    throw new EscapeException();
 
-            else if (keyInfo.Key == ConsoleKey.Backspace)
-            {
+                case ConsoleKey.Enter:
+                    return input;
+
                 // Remove the last character from the input string (if any)
-                if (input.Length > 0)
-                {
-                    input = input.Substring(0, input.Length - 1);
-                    Console.Write(" \b"); // Erase the character from the console
-                }
-            }
-            else if (keyInfo.Key == ConsoleKey.Enter)
-            {
-                break; // Exit the loop when the user presses Enter
-            }
-            else
-            {
+                case ConsoleKey.Backspace:
+                    if (input.Length > 0)
+                    {
+                        input = input.Substring(0, input.Length - 1);
+                        // Erase the character from the console
+                        Console.Write(" \b");
+                    }
+                    break;
+
                 // Append the entered character to the input string
-                input += keyInfo.KeyChar;
+                default:
+                    input += keyInfo.KeyChar;
+                    break;
+
             }
         }
-        return input;
+    }
+
+    /// <summary>
+    /// Just print the message of the exception
+    /// </summary>
+    /// <param name="ex"></param>
+    internal static void PrintError(Exception ex)
+    {
+        Console.WriteLine(" ");
+        Console.WriteLine("Error: " + ex.Message);
+        Console.WriteLine();
     }
 }

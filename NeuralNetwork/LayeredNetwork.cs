@@ -19,7 +19,7 @@ public class LayeredNetwork
     double[][][] weights;       // Weights between layers
 
     public int InputCount => layerSizes[0];
-    public int OutputCount => layerSizes[layerCount - 1];
+    public int TargetCount => layerSizes[layerCount - 1];
 
     /// <summary>
     /// Create a new neural network with fully connected layers
