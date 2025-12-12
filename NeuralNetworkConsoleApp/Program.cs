@@ -184,8 +184,8 @@ internal class Program
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
 
-        var lr = ReadDouble("Enter learning rate");
-        var epochs = (int)ReadDouble("Enter number of epochs");
+        var lr = ReadDouble("Enter learning rate", minValue: 0.0);
+        var epochs = (int)ReadDouble("Enter number of epochs", minValue: 1);
 
         int totalIterations = 0;
         Stopwatch stopwatch = Stopwatch.StartNew();
@@ -292,7 +292,17 @@ internal class Program
     {
         var path = GetFilePath(true, false);
         var data = TrainingDataPersistence.LoadFromFile(path);
-        Session.Instance.CurrentTrainingData = data;
+        
+   if (data == null || data.Count == 0)
+  {
+      Console.WriteLine("Warning: No training data loaded or file is empty.");
+     Session.Instance.CurrentTrainingData = new List<TrainingData>();
+        }
+    else
+  {
+    Session.Instance.CurrentTrainingData = data;
+     Console.WriteLine($"Successfully loaded {data.Count} training data entries.");
+ }
     }
 
     /// <summary>
@@ -321,17 +331,23 @@ internal class Program
     /// Read one double value
     /// </summary>
     /// <param name="prompt">Message to print</param>
+    /// <param name="minValue">Minimum acceptable value (optional)</param>
     /// <returns>double value if successful</returns>
-    static double ReadDouble(string prompt)
+    static double ReadDouble(string prompt, double minValue = double.MinValue)
     {
         Console.Write(prompt + ": ");
         string value = ReadString();
 
-        double result;
-        if (!double.TryParse(value, out result))
+        if (!double.TryParse(value, out double result))
         {
-            Console.WriteLine("Invalid input. Please try again...");
-            return ReadDouble(prompt);
+            Console.WriteLine("Invalid input. Please enter a valid number.");
+            return ReadDouble(prompt, minValue);
+        }
+
+        if (result < minValue)
+        {
+            Console.WriteLine($"Invalid input. Value must be at least {minValue}.");
+            return ReadDouble(prompt, minValue);
         }
 
         return result;
@@ -357,29 +373,42 @@ internal class Program
             return ReadDoubleArray(prompt, expectedLength);
         }
 
-        // Now create the array from the string elements
+     // Now create the array from the string elements
         double[] array = new double[elements.Length];
 
-        for (int i = 0; i < elements.Length; i++)
-        {
-            array[i] = double.Parse(elements[i]);
-        }
+  for (int i = 0; i < elements.Length; i++)
+    {
+     if (!double.TryParse(elements[i].Trim(), out array[i]))
+   {
+                Console.WriteLine($"{Environment.NewLine}Invalid number format at position {i + 1}: '{elements[i]}'");
+  return ReadDoubleArray(prompt, expectedLength);
+   }
+    }
 
         Console.WriteLine();
         return array;
-    }
+}
 
+    /// <summary>
+    /// Read an array of integer values as "[x, y, z, ...]"
+    /// </summary>
+    /// <param name="prompt">Message to print</param>
+    /// <returns>integer array if successful</returns>
     static int[] ReadIntArray(string prompt)
-    {
+{
         Console.Write($"{prompt}: ");
 
-        string value = ReadString();
+string value = ReadString();
         string[] elements = value.Trim('[', ']').Split(',');
         int[] intArray = new int[elements.Length];
 
-        for (int i = 0; i < elements.Length; i++)
-        {
-            intArray[i] = int.Parse(elements[i]);
+  for (int i = 0; i < elements.Length; i++)
+     {
+       if (!int.TryParse(elements[i].Trim(), out intArray[i]))
+      {
+            Console.WriteLine($"{Environment.NewLine}Invalid integer format at position {i + 1}: '{elements[i]}'");
+    return ReadIntArray(prompt);
+  }
         }
 
         Console.WriteLine();

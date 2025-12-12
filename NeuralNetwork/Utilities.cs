@@ -1,17 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace NeuralNetwork
 {
     public static class Utilities
     {
-        private static Random random = new Random();
-
         internal static void ThrowIfMaxSmallerMin(double min, double max)
         {
             if (min >= max)
@@ -20,12 +13,16 @@ namespace NeuralNetwork
             }
         }
 
+        /// <summary>
+        /// Generate a random double value between min and max using thread-safe Random.Shared
+        /// </summary>
+        /// <param name="min">Minimum value (inclusive)</param>
+        /// <param name="max">Maximum value (exclusive)</param>
+        /// <returns>Random double value in the specified range</returns>
         internal static double Random(double min, double max)
         {
             ThrowIfMaxSmallerMin(min, max);
-            ArgumentNullException.ThrowIfNull(random);
-
-            return random.NextDouble() * (max - min) + min;
+            return System.Random.Shared.NextDouble() * (max - min) + min;
         }
 
         internal static int IndexOfMax(double[] array)
