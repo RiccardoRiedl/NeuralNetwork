@@ -7,8 +7,38 @@ namespace NeuralNetwork;
 /// </summary>
 public struct TrainingData
 {
+    /// <summary>
+    /// Create a new training data entry with input and target values
+    /// </summary>
+    /// <param name="input">Input values for the neural network</param>
+    /// <param name="target">Expected target/output values</param>
+    /// <exception cref="ArgumentNullException">If input or target is null</exception>
+    /// <exception cref="ArgumentException">If arrays contain NaN or infinite values</exception>
     public TrainingData(double[] input, double[] target)
     {
+        ArgumentNullException.ThrowIfNull(input, nameof(input));
+        ArgumentNullException.ThrowIfNull(target, nameof(target));
+
+        if (input.Length == 0)
+        {
+            throw new ArgumentException("Input array cannot be empty", nameof(input));
+        }
+
+        if (target.Length == 0)
+        {
+            throw new ArgumentException("Target array cannot be empty", nameof(target));
+        }
+
+        if (input.Any(double.IsNaN) || input.Any(double.IsInfinity))
+        {
+            throw new ArgumentException("Input contains NaN or infinite values", nameof(input));
+        }
+
+        if (target.Any(double.IsNaN) || target.Any(double.IsInfinity))
+        {
+            throw new ArgumentException("Target contains NaN or infinite values", nameof(target));
+        }
+
         Input = input;
         Target = target;
     }

@@ -43,17 +43,17 @@ internal static class ActivationFunctions
 
     /// <summary>
     /// Function to run an activation function based on a given input value
-    /// passed from neurons. It retuns the resulting activation value as well
-    /// as the derivation to be used later in backpropagation
+    /// passed from neurons. It returns the resulting activation value as well
+    /// as the derivative to be used later in backpropagation
     /// </summary>
-    /// <param name="type"></param>
-    /// <param name="input"></param>
-    /// <param name="gradients"></param>
-    /// <returns></returns>
+    /// <param name="type">Type of activation function to apply</param>
+    /// <param name="input">Input values to activate</param>
+    /// <param name="gradients">Whether to compute gradients/derivatives</param>
+    /// <returns>Tuple containing activations and optional derivatives</returns>
     internal static (double[] activations, double[]? derivations) Activation(FunctionType type, double[] input, bool gradients)
     {
         double[] activations = new double[input.Length];
-        double[]? derivations = new double[input.Length];
+        double[]? derivations = gradients ? new double[input.Length] : null;
 
         switch (type)
         {

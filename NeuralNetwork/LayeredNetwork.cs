@@ -9,24 +9,24 @@ namespace NeuralNetwork;
 /// </summary>
 public class LayeredNetwork
 {
-    int[] layerSizes;           // Number of neurons in each layer
-    FunctionType[] functions;   // Activation function for each layer
-    int layerCount;             // Total number of layers
-    double[][] layerOutputs;    // Activations of neurons in each layer
-    double[][] layerDerivations;// Derivation of neurons in each layer
-    double[][] layerInputs;     // Weighted sums of neurons in each layer
-    double[][] biases;          // Biases for neurons in each layer
-    double[][][] weights;       // Weights between layers
+    private readonly int[] layerSizes;           // Number of neurons in each layer
+    private readonly FunctionType[] functions;   // Activation function for each layer
+    private readonly int layerCount; // Total number of layers
+    private readonly double[][] layerOutputs;    // Activations of neurons in each layer
+    private readonly double[][] layerDerivations;// Derivation of neurons in each layer
+  private readonly double[][] layerInputs;     // Weighted sums of neurons in each layer
+    private readonly double[][] biases;        // Biases for neurons in each layer
+    private readonly double[][][] weights;       // Weights between layers
 
     public int InputCount => layerSizes[0];
-    public int TargetCount => layerSizes[layerCount - 1];
+public int TargetCount => layerSizes[layerCount - 1];
 
     /// <summary>
     /// Create a new neural network with fully connected layers
-    /// </summary>
+  /// </summary>
     /// <param name="layerSizes">Each element of the array represents a layer
     /// defined by the number of neurons</param>
-    /// <param name="randomize">Optionally randomize weights and biases</param>
+    /// <param name="randomize">Optionally randomize weights and biases using Xavier/He initialization</param>
     public LayeredNetwork(int[] layerSizes, bool randomize = true)
     {
         // Validate input
@@ -65,33 +65,40 @@ public class LayeredNetwork
 
         // Initialize weights
         for (int i = 0; i < layerCount - 1; i++)
-        {
-            weights[i] = new double[layerSizes[i + 1]][];
+     {
+     weights[i] = new double[layerSizes[i + 1]][];
             for (int j = 0; j < layerSizes[i + 1]; j++)
-            {
-                weights[i][j] = new double[layerSizes[i]];
+     {
+             weights[i][j] = new double[layerSizes[i]];
 
-                if (randomize)
-                {
-                    for (int k = 0; k < layerSizes[i]; k++)
-                    {
-                        weights[i][j][k] = Utilities.Random(-0.5, 0.5);
-                    }
-                }
-            }
+           if (randomize)
+      {
+   // Use Xavier/He initialization based on activation function
+             double stdDev = GetWeightInitializationStdDev(i + 1, layerSizes[i], layerSizes[i + 1]);
+            
+        for (int k = 0; k < layerSizes[i]; k++)
+           {
+ // Box-Muller transform for normal distribution
+          double u1 = System.Random.Shared.NextDouble();
+      double u2 = System.Random.Shared.NextDouble();
+   double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+    weights[i][j][k] = randStdNormal * stdDev;
+         }
+   }
+     }
         }
 
-        for (int j = 0; j < layerSizes[0]; j++)
-        {
+   for (int j = 0; j < layerSizes[0]; j++)
+   {
             biases[0][j] = 0;
-        }
+ }
 
-        for (int i = 1; i < layerCount; i++)
+ for (int i = 1; i < layerCount; i++)
         {
-            for (int j = 0; j < layerSizes[i]; j++)
-            {
-                biases[i][j] = randomize ? Utilities.Random(-0.5, 0.5) : 0;
-            }
+         for (int j = 0; j < layerSizes[i]; j++)
+   {
+      biases[i][j] = randomize ? Utilities.Random(-0.1, 0.1) : 0;
+   }
         }
     }
 
@@ -154,11 +161,11 @@ if (input.Length != layerSizes[0])
     }
 
     /// <summary>
-    /// Back propagation
+    /// Back propagation algorithm for training the neural network
     /// </summary>
-    /// <param name="input"></param>
-    /// <param name="target"></param>
-    /// <param name="learningRate"></param>
+/// <param name="values">Training data containing input and target values</param>
+    /// <param name="learningRate">Learning rate for weight and bias updates</param>
+    /// <returns>Mean squared error for this training iteration</returns>
     public double BackPropagation(TrainingData values, double learningRate)
     {
         double totalError = 0;
@@ -224,35 +231,52 @@ if (input.Length != layerSizes[0])
     }
 
     /// <summary>
-    /// Print network
+    /// Print network structure with weights and biases
     /// </summary>
-    /// <returns></returns>
+    /// <returns>String representation of the network</returns>
     public override string ToString()
     {
         StringBuilder sb = new StringBuilder();
 
         sb.AppendLine($"{layerCount} Layers: => [{string.Join("] [", layerSizes)}]");
-      for (int i = 0; i < weights.Length; i++)
+        for (int i = 0; i < weights.Length; i++)
         {
-   for (int j = 0; j < weights[i].Length; j++)
-      {
-      for (int k = 0; k < weights[i][j].Length; k++)
-        {
-      sb.AppendLine($"Weight from Layer {i} Neuron {k} to Layer {i + 1} Neuron {j}: {weights[i][j][k]:F4}");
-      }
-   }
-     }
-    for (int i = 0; i < biases.Length; i++)
+        for (int j = 0; j < weights[i].Length; j++)
     {
-     for (int j = 0; j < biases[i].Length; j++)
-      {
-     sb.AppendLine($"Layer {i} Neuron {j} Bias: {biases[i][j]:F4}");
- }
-
+              for (int k = 0; k < weights[i][j].Length; k++)
+{
+            sb.AppendLine($"Weight from Layer {i} Neuron {k} to Layer {i + 1} Neuron {j}: {weights[i][j][k]:F4}");
+    }
+            }
+      }
+    for (int i = 0; i < biases.Length; i++)
+   {
+    for (int j = 0; j < biases[i].Length; j++)
+         {
+                sb.AppendLine($"Layer {i} Neuron {j} Bias: {biases[i][j]:F4}");
+         }
         }
 
-
-
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Calculate the standard deviation for weight initialization based on the activation function
+  /// Uses He initialization for ReLU variants, Xavier for others
+    /// </summary>
+    /// <param name="layerIndex">Index of the layer being initialized</param>
+    /// <param name="inputSize">Number of input neurons</param>
+  /// <param name="outputSize">Number of output neurons</param>
+    /// <returns>Standard deviation for weight initialization</returns>
+ private double GetWeightInitializationStdDev(int layerIndex, int inputSize, int outputSize)
+    {
+  return functions[layerIndex] switch
+   {
+            FunctionType.ReLU or FunctionType.LeakyReLU => 
+          Math.Sqrt(2.0 / inputSize), // He initialization
+         FunctionType.Sigmoid or FunctionType.Tanh => 
+                Math.Sqrt(2.0 / (inputSize + outputSize)), // Xavier initialization
+       _ => Math.Sqrt(1.0 / inputSize) // Default
+        };
     }
 }
