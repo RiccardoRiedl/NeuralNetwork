@@ -69,7 +69,7 @@ internal static class ActivationFunctions
 
             case FunctionType.Tanh:
                 activations = input.Select(x => Math.Tanh(x)).ToArray();
-                derivations = gradients ? input.Select(x => 1 - Math.Tanh(x) * Math.Tanh(x)).ToArray() : null;
+                derivations = gradients ? activations.Select(a => 1 - a * a).ToArray() : null;
                 break;
 
             case FunctionType.LeakyReLU:
@@ -90,27 +90,11 @@ internal static class ActivationFunctions
 
                 if (gradients)
                 {
-                    // Compute the elements of the Jacobian matrix
-                    double[,] jacobian = new double[input.Length, input.Length];
-                    for (int i = 0; i < input.Length; i++)
-                    {
-                        for (int j = 0; j < input.Length; j++)
-                        {
-                            double delta = (i == j) ? 1.0f : 0.0f;
-                            jacobian[i, j] = activations[i] * (delta - activations[j]);
-                        }
-                    }
-
-                    // Compute the derivative of the softmax function with respect to the input
-                    for (int i = 0; i < input.Length; i++)
-                    {
-                        double sum = 0.0f;
-                        for (int j = 0; j < input.Length; j++)
-                        {
-                            sum += jacobian[i, j] * input[j];
-                        }
-                        derivations[i] = sum;
-                    }
+                    // For SoftMax with cross-entropy loss, the gradient is typically handled
+                    // in the loss function. For general case, SoftMax derivative is:
+                    // dS_i/dx_j = S_i * (delta_ij - S_j)
+                    // Since we typically use this with cross-entropy, we store the diagonal elements
+                    derivations = activations.Select(a => a * (1 - a)).ToArray();
                 }
                 else
                 {

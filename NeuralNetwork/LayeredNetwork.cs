@@ -13,9 +13,9 @@ public class LayeredNetwork
     FunctionType[] functions;   // Activation function for each layer
     int layerCount;             // Total number of layers
     double[][] layerOutputs;    // Activations of neurons in each layer
-    double[][] layerDerivations;// Derviation of neurons in each layer
+    double[][] layerDerivations;// Derivation of neurons in each layer
     double[][] layerInputs;     // Weighted sums of neurons in each layer
-    double[][] biases;          // Weighted sums of neurons in each layer
+    double[][] biases;          // Biases for neurons in each layer
     double[][][] weights;       // Weights between layers
 
     public int InputCount => layerSizes[0];
@@ -29,6 +29,19 @@ public class LayeredNetwork
     /// <param name="randomize">Optionally randomize weights and biases</param>
     public LayeredNetwork(int[] layerSizes, bool randomize = true)
     {
+        // Validate input
+        ArgumentNullException.ThrowIfNull(layerSizes);
+        
+        if (layerSizes.Length < 2)
+        {
+            throw new ArgumentException("Network must have at least 2 layers (input and output)", nameof(layerSizes));
+        }
+        
+        if (layerSizes.Any(size => size <= 0))
+        {
+            throw new ArgumentException("All layer sizes must be greater than 0", nameof(layerSizes));
+        }
+
         this.layerSizes = layerSizes;
         this.layerCount = layerSizes.Length;
 
@@ -73,7 +86,7 @@ public class LayeredNetwork
             biases[0][j] = 0;
         }
 
-        for (int i = 1; i < layerCount - 1; i++)
+        for (int i = 1; i < layerCount; i++)
         {
             for (int j = 0; j < layerSizes[i]; j++)
             {
@@ -100,6 +113,14 @@ public class LayeredNetwork
 
     public double[] FeedForward(double[] input, bool gradients)
     {
+        // Validate input
+   ArgumentNullException.ThrowIfNull(input);
+        
+if (input.Length != layerSizes[0])
+   {
+       throw new ArgumentException($"Input size ({input.Length}) does not match network input layer size ({layerSizes[0]})", nameof(input));
+        }
+
         Array.Copy(input, layerOutputs[0], input.Length);
 
         for (int iSourceLayer = 0; iSourceLayer < layerCount - 1; iSourceLayer++)
@@ -123,7 +144,10 @@ public class LayeredNetwork
 
             var a = ActivationFunctions.Activation(functions[iTargetLayer], layerInputs[iTargetLayer], gradients);
             layerOutputs[iTargetLayer] = a.activations;
-            layerDerivations[iTargetLayer] = (double[])a.derivations;
+       if (gradients && a.derivations != null)
+         {
+    layerDerivations[iTargetLayer] = a.derivations;
+      }
         }
 
         return layerOutputs[layerCount - 1];
@@ -144,12 +168,13 @@ public class LayeredNetwork
 
         // Calculate output layer error
         int iOutputSize = layerSizes[layerCount - 1];
-        double[] outputError = new double[iOutputSize];
+      double[] outputError = new double[iOutputSize];
         for (int iOutputNeuron = 0; iOutputNeuron < iOutputSize; iOutputNeuron++)
-        {
+ {
             outputError[iOutputNeuron] = layerOutputs[layerCount - 1][iOutputNeuron] - values.Target[iOutputNeuron];
-            totalError += outputError[iOutputNeuron];
+      totalError += outputError[iOutputNeuron] * outputError[iOutputNeuron];
         }
+     totalError /= iOutputSize; // Mean Squared Error
 
         // Backpropagate the error
         double[][] hiddenErrors = new double[layerCount][];
@@ -207,26 +232,27 @@ public class LayeredNetwork
         StringBuilder sb = new StringBuilder();
 
         sb.AppendLine($"{layerCount} Layers: => [{string.Join("] [", layerSizes)}]");
-        for (int i = 0; i < weights.Length; i++)
+      for (int i = 0; i < weights.Length; i++)
         {
-            for (int j = 0; j < weights[i].Length; j++)
-            {
-                for (int k = 0; k < weights[i][j].Length; k++)
-                {
-                    sb.AppendLine($"From layer {i} to {j} from {k}: Weight = {weights[i][j][k]}");
-                }
-            }
-        }
-        for (int i = 0; i < biases.Length; i++)
+   for (int j = 0; j < weights[i].Length; j++)
+      {
+      for (int k = 0; k < weights[i][j].Length; k++)
         {
-            for (int j = 0; j < biases[i].Length; j++)
-            {
-                sb.AppendLine($"layer {i} neuron {j}: Bias  = {biases[i][j]}");
-            }
+      sb.AppendLine($"Weight from Layer {i} Neuron {k} to Layer {i + 1} Neuron {j}: {weights[i][j][k]:F4}");
+      }
+   }
+     }
+    for (int i = 0; i < biases.Length; i++)
+    {
+     for (int j = 0; j < biases[i].Length; j++)
+      {
+     sb.AppendLine($"Layer {i} Neuron {j} Bias: {biases[i][j]:F4}");
+ }
 
         }
 
-        Console.WriteLine($"");
+
+
         return sb.ToString();
     }
 }

@@ -29,7 +29,7 @@ internal class Program
             key = SelectCommand();
         }
 
-        Console.Write("PPress any key to close this window");
+        Console.Write("Press any key to close this window");
         Console.ReadKey();
     }
 
@@ -40,7 +40,7 @@ internal class Program
     {
         Console.WriteLine("-============================-");
         Console.WriteLine("| Neural Network Console App |");
-        Console.WriteLine("| © 2023 Riccardo Riedl      |");
+        Console.WriteLine("| © 2025 Riccardo Riedl      |");
         Console.WriteLine("-============================-");
         Console.WriteLine();
         Console.WriteLine("Press [F1] for help");
@@ -185,17 +185,22 @@ internal class Program
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
 
         var lr = ReadDouble("Enter learning rate");
+        var epochs = (int)ReadDouble("Enter number of epochs");
 
-        int i = 0;
+        int totalIterations = 0;
         Stopwatch stopwatch = Stopwatch.StartNew();
 
-        for (;i < Session.Instance.CurrentTrainingData.Count;i++)
+        for (int epoch = 0; epoch < epochs; epoch++)
         {
-            Session.Instance.CurrentNetwork.BackPropagation(Session.Instance.CurrentTrainingData[i], 0.01);
+            for (int i = 0; i < Session.Instance.CurrentTrainingData.Count; i++)
+            {
+                Session.Instance.CurrentNetwork.BackPropagation(Session.Instance.CurrentTrainingData[i], lr);
+                totalIterations++;
+            }
         }
         stopwatch.Stop();
 
-        Console.WriteLine($"Training finished {i} runs after {stopwatch.ElapsedMilliseconds} ms.");
+        Console.WriteLine($"Training finished {totalIterations} iterations ({epochs} epochs) after {stopwatch.ElapsedMilliseconds} ms.");
     }
 
     /// <summary>
@@ -206,7 +211,7 @@ internal class Program
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentNetwork);
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
 
-        foreach(var set in Session.Instance.CurrentTrainingData)
+        foreach (var set in Session.Instance.CurrentTrainingData)
         {
             Console.WriteLine($"Input: {ArrayToString(set.Input)} -> Target: {ArrayToString(set.Target)}");
         }
@@ -221,7 +226,7 @@ internal class Program
 
         var input = ReadDoubleArray($"Enter {Session.Instance.CurrentNetwork.InputCount} input values", Session.Instance.CurrentNetwork.InputCount);
         var output = ReadDoubleArray($"Enter {Session.Instance.CurrentNetwork.TargetCount} target values", Session.Instance.CurrentNetwork.TargetCount);
-        
+
         Session.Instance.AddTrainingData(new TrainingData(input, output));
     }
 
@@ -274,7 +279,7 @@ internal class Program
     /// Save current training data
     /// </summary>
     static void SaveData()
-    {        
+    {
         ArgumentNullException.ThrowIfNull(Session.Instance.CurrentTrainingData);
         var path = GetFilePath(false, true);
         TrainingDataPersistence.SaveDataSet(Session.Instance.CurrentTrainingData, path);
@@ -336,9 +341,9 @@ internal class Program
     /// Prompt user to enter an array of double values as "[x.y, z, ...]"
     /// </summary>
     /// <param name="prompt">Message to print</param>
-    /// <param name="expectedLenght">Expected number of elements</param>
+    /// <param name="expectedLength">Expected number of elements</param>
     /// <returns>double array if successful</returns>
-    static double[] ReadDoubleArray(string prompt, int expectedLenght)
+    static double[] ReadDoubleArray(string prompt, int expectedLength)
     {
         Console.Write($"{prompt}: ");
 
@@ -346,10 +351,10 @@ internal class Program
         string[] elements = value.Trim('[', ']').Split(',');
 
         // Check if expected number of elements was entered and if not restart the prompt
-        if (elements.Length != expectedLenght)
+        if (elements.Length != expectedLength)
         {
-            Console.WriteLine($"{Environment.NewLine}Invalid input. Expected {expectedLenght} elements but received {elements.Length}");
-            return ReadDoubleArray(prompt, expectedLenght);
+            Console.WriteLine($"{Environment.NewLine}Invalid input. Expected {expectedLength} elements but received {elements.Length}");
+            return ReadDoubleArray(prompt, expectedLength);
         }
 
         // Now create the array from the string elements
